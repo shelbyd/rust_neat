@@ -17,5 +17,7 @@ fn main() {
 
     let network = Network::new(&sensor_nodes, &output_nodes, &edges);
     let inputs = &vec![1., 1.];
-    println!("{:?}", network.eval(inputs, &HashMap::new()));
+    let (evaled, activations) = network.eval(inputs, &HashMap::new());
+    println!("{:?}", evaled);
+    println!("{:?}", activations);
 }

@@ -22,23 +22,30 @@ impl<'a> Network<'a> {
         }
     }
 
-    pub fn eval(&self, inputs: &Vec<f64>, previous_activations: &HashMap<&Node, f64>) -> Vec<f64> {
+    pub fn eval(&self,
+                inputs: &Vec<f64>,
+                previous_activations: &HashMap<&Node, f64>)
+                -> (Vec<f64>, HashMap<&Node, f64>) {
         let mut currently_calculating = HashSet::new();
-        self.outputs
-            .iter()
-            .map(|output| {
-                self.get_value(output,
-                               inputs,
-                               previous_activations,
-                               &mut currently_calculating)
-            })
-            .collect()
+        let mut these_activations = HashMap::new();
+        let outputs = self.outputs
+                          .iter()
+                          .map(|output| {
+                              self.get_value(output,
+                                             inputs,
+                                             previous_activations,
+                                             &mut these_activations,
+                                             &mut currently_calculating)
+                          })
+                          .collect();
+        (outputs, these_activations)
     }
 
     fn get_value<'c>(&self,
                      node: &'a Node,
                      inputs: &Vec<f64>,
                      previous_activations: &HashMap<&Node, f64>,
+                     these_activations: &mut HashMap<&'a Node, f64>,
                      currently_calculating: &'c mut HashSet<&'a Node>)
                      -> f64 {
 
@@ -59,6 +66,7 @@ impl<'a> Network<'a> {
                                   self.get_value(edge.source,
                                                  inputs,
                                                  previous_activations,
+                                                 these_activations,
                                                  currently_calculating)
                               })
                               .fold(0., |acc, weight| acc + weight);
@@ -66,12 +74,16 @@ impl<'a> Network<'a> {
 
         match self.outputs.contains(node) {
             true => total_input,
-            false => sigmoid(total_input),
+            false => {
+                let result = sigmoid(total_input);
+                these_activations.insert(node, result);
+                result
+            }
         }
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub struct Node {
     id: usize,
 }
@@ -120,7 +132,9 @@ mod test {
         let edges = &vec![Edge::new(&sensors[0], &outputs[0], 1.)];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = &HashMap::new();
-        let evaled = network.eval(&vec![1.], previous_activations);
+
+        let (evaled, _) = network.eval(&vec![1.], previous_activations);
+
         assert_eq!(evaled[0], 1.);
     }
 
@@ -131,7 +145,9 @@ mod test {
         let edges = &vec![Edge::new(&sensors[0], &outputs[0], 2.)];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = &HashMap::new();
-        let evaled = network.eval(&vec![1.], previous_activations);
+
+        let (evaled, _) = network.eval(&vec![1.], previous_activations);
+
         assert_eq!(evaled[0], 2.);
     }
 
@@ -146,7 +162,9 @@ mod test {
         ];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = &HashMap::new();
-        let evaled = network.eval(&vec![1.], previous_activations);
+
+        let (evaled, _) = network.eval(&vec![1.], previous_activations);
+
         assert!((evaled[0] - 0.73105).abs() < 0.00001);
     }
 
@@ -163,7 +181,9 @@ mod test {
         let network = Network::new(sensors, outputs, edges);
         let mut previous_activations = HashMap::new();
         previous_activations.insert(&hiddens[0], 1.);
-        let evaled = network.eval(&vec![1.], &previous_activations);
+
+        let (evaled, _) = network.eval(&vec![1.], &previous_activations);
+
         assert!((evaled[0] - 0.88079).abs() < 0.00001);
     }
 
@@ -180,7 +200,28 @@ mod test {
         ];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = HashMap::new();
-        let evaled = network.eval(&vec![1.], &previous_activations);
+
+        let (evaled, _) = network.eval(&vec![1.], &previous_activations);
+
         assert_eq!(evaled[0], evaled[1]);
+    }
+
+    #[test]
+    fn test_get_activations() {
+        let sensors = &nodes(1);
+        let hiddens = &nodes(1);
+        let outputs = &nodes(1);
+        let edges = &vec![
+            Edge::new(&sensors[0], &hiddens[0], 1.),
+            Edge::new(&hiddens[0], &outputs[0], 1.),
+        ];
+        let network = Network::new(sensors, outputs, edges);
+        let previous_activations = &HashMap::new();
+
+        let (_, activations) = network.eval(&vec![1.], previous_activations);
+
+        let activation = activations.get(&hiddens[0]);
+        assert!(activation.is_some());
+        assert!((activation.unwrap() - 0.73105).abs() < 0.00001);
     }
 }
