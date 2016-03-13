@@ -1,6 +1,6 @@
 extern crate rand;
 
-use std::f32::consts::E;
+use std::f64::consts::E;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -22,7 +22,7 @@ impl<'a> Network<'a> {
         }
     }
 
-    pub fn eval(&self, inputs: &Vec<f32>, previous_activations: &HashMap<&Node, f32>) -> Vec<f32> {
+    pub fn eval(&self, inputs: &Vec<f64>, previous_activations: &HashMap<&Node, f64>) -> Vec<f64> {
         let mut currently_calculating = HashSet::new();
         self.outputs
             .iter()
@@ -37,10 +37,10 @@ impl<'a> Network<'a> {
 
     fn get_value<'c>(&self,
                      node: &'a Node,
-                     inputs: &Vec<f32>,
-                     previous_activations: &HashMap<&Node, f32>,
+                     inputs: &Vec<f64>,
+                     previous_activations: &HashMap<&Node, f64>,
                      currently_calculating: &'c mut HashSet<&'a Node>)
-                     -> f32 {
+                     -> f64 {
 
         if currently_calculating.contains(node) {
             return *previous_activations.get(node).unwrap_or(&0.);
@@ -85,11 +85,11 @@ impl Node {
 pub struct Edge<'a> {
     source: &'a Node,
     destination: &'a Node,
-    weight: f32,
+    weight: f64,
 }
 
 impl<'a> Edge<'a> {
-    pub fn new(source: &'a Node, destination: &'a Node, weight: f32) -> Edge<'a> {
+    pub fn new(source: &'a Node, destination: &'a Node, weight: f64) -> Edge<'a> {
         Edge {
             source: source,
             destination: destination,
@@ -102,7 +102,7 @@ pub fn nodes(count: usize) -> Vec<Node> {
     (0..).take(count).map(|_| Node::new()).collect()
 }
 
-fn sigmoid(value: f32) -> f32 {
+fn sigmoid(value: f64) -> f64 {
     1. / (1. + E.powf(-value))
 }
 
