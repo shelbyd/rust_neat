@@ -4,17 +4,14 @@ use std::f64::consts::E;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-pub struct Network<'a> {
-    sensors: &'a Vec<Node>,
-    outputs: &'a Vec<Node>,
-    edges: &'a Vec<Edge<'a>>,
+pub struct Network {
+    sensors: Vec<Node>,
+    outputs: Vec<Node>,
+    edges: Vec<Edge>,
 }
 
-impl<'a> Network<'a> {
-    pub fn new(sensors: &'a Vec<Node>,
-               outputs: &'a Vec<Node>,
-               edges: &'a Vec<Edge>)
-               -> Network<'a> {
+impl Network {
+    pub fn new(sensors: Vec<Node>, outputs: Vec<Node>, edges: Vec<Edge>) -> Network {
         Network {
             sensors: sensors,
             outputs: outputs,
@@ -24,8 +21,8 @@ impl<'a> Network<'a> {
 
     pub fn eval(&self,
                 inputs: &Vec<f64>,
-                previous_activations: &HashMap<&Node, f64>)
-                -> (Vec<f64>, HashMap<&Node, f64>) {
+                previous_activations: &HashMap<Node, f64>)
+                -> (Vec<f64>, HashMap<Node, f64>) {
         let mut currently_calculating = HashSet::new();
         let mut these_activations = HashMap::new();
         let outputs = self.outputs
@@ -41,13 +38,13 @@ impl<'a> Network<'a> {
         (outputs, these_activations)
     }
 
-    fn get_value<'c>(&self,
-                     node: &'a Node,
-                     inputs: &Vec<f64>,
-                     previous_activations: &HashMap<&Node, f64>,
-                     these_activations: &mut HashMap<&'a Node, f64>,
-                     currently_calculating: &'c mut HashSet<&'a Node>)
-                     -> f64 {
+    fn get_value(&self,
+                 node: &Node,
+                 inputs: &Vec<f64>,
+                 previous_activations: &HashMap<Node, f64>,
+                 these_activations: &mut HashMap<Node, f64>,
+                 currently_calculating: &mut HashSet<Node>)
+                 -> f64 {
 
         if currently_calculating.contains(node) {
             return *previous_activations.get(node).unwrap_or(&0.);
@@ -57,13 +54,13 @@ impl<'a> Network<'a> {
             return inputs[self.sensors.iter().position(|n| n == node).unwrap()];
         }
 
-        currently_calculating.insert(node);
+        currently_calculating.insert(*node);
         let total_input = self.edges
                               .iter()
-                              .filter(|edge| edge.destination == node)
+                              .filter(|edge| &edge.destination == node)
                               .map(|edge| {
                                   edge.weight *
-                                  self.get_value(edge.source,
+                                  self.get_value(&edge.source,
                                                  inputs,
                                                  previous_activations,
                                                  these_activations,
@@ -76,32 +73,30 @@ impl<'a> Network<'a> {
             true => total_input,
             false => {
                 let result = sigmoid(total_input);
-                these_activations.insert(node, result);
+                these_activations.insert(*node, result);
                 result
             }
         }
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Debug)]
-pub struct Node {
-    id: usize,
-}
+#[derive(PartialEq, Eq, Hash, Debug, Copy, Clone)]
+pub struct Node(usize);
 
 impl Node {
     fn new() -> Node {
-        Node { id: rand::random::<usize>() }
+        Node(rand::random::<usize>())
     }
 }
 
-pub struct Edge<'a> {
-    source: &'a Node,
-    destination: &'a Node,
+pub struct Edge {
+    source: Node,
+    destination: Node,
     weight: f64,
 }
 
-impl<'a> Edge<'a> {
-    pub fn new(source: &'a Node, destination: &'a Node, weight: f64) -> Edge<'a> {
+impl Edge {
+    pub fn new(source: Node, destination: Node, weight: f64) -> Edge {
         Edge {
             source: source,
             destination: destination,
@@ -127,9 +122,9 @@ mod test {
 
     #[test]
     fn test_simple_network() {
-        let sensors = &nodes(1);
-        let outputs = &nodes(1);
-        let edges = &vec![Edge::new(&sensors[0], &outputs[0], 1.)];
+        let sensors = nodes(1);
+        let outputs = nodes(1);
+        let edges = vec![Edge::new(sensors[0], outputs[0], 1.)];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = &HashMap::new();
 
@@ -140,9 +135,9 @@ mod test {
 
     #[test]
     fn test_weight_of_two() {
-        let sensors = &nodes(1);
-        let outputs = &nodes(1);
-        let edges = &vec![Edge::new(&sensors[0], &outputs[0], 2.)];
+        let sensors = nodes(1);
+        let outputs = nodes(1);
+        let edges = vec![Edge::new(sensors[0], outputs[0], 2.)];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = &HashMap::new();
 
@@ -153,12 +148,12 @@ mod test {
 
     #[test]
     fn test_hidden_node() {
-        let sensors = &nodes(1);
-        let hiddens = &nodes(1);
-        let outputs = &nodes(1);
-        let edges = &vec![
-            Edge::new(&sensors[0], &hiddens[0], 1.),
-            Edge::new(&hiddens[0], &outputs[0], 1.),
+        let sensors = nodes(1);
+        let hiddens = nodes(1);
+        let outputs = nodes(1);
+        let edges = vec![
+            Edge::new(sensors[0], hiddens[0], 1.),
+            Edge::new(hiddens[0], outputs[0], 1.),
         ];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = &HashMap::new();
@@ -170,17 +165,18 @@ mod test {
 
     #[test]
     fn test_recurrence() {
-        let sensors = &nodes(1);
-        let hiddens = &nodes(1);
-        let outputs = &nodes(1);
-        let edges = &vec![
-            Edge::new(&sensors[0], &hiddens[0], 1.),
-            Edge::new(&hiddens[0], &hiddens[0], 1.),
-            Edge::new(&hiddens[0], &outputs[0], 1.),
+        let sensors = nodes(1);
+        let hiddens = nodes(1);
+        let outputs = nodes(1);
+        let edges = vec![
+            Edge::new(sensors[0], hiddens[0], 1.),
+            Edge::new(hiddens[0], hiddens[0], 1.),
+            Edge::new(hiddens[0], outputs[0], 1.),
         ];
+
         let network = Network::new(sensors, outputs, edges);
         let mut previous_activations = HashMap::new();
-        previous_activations.insert(&hiddens[0], 1.);
+        previous_activations.insert(hiddens[0], 1.);
 
         let (evaled, _) = network.eval(&vec![1.], &previous_activations);
 
@@ -189,14 +185,14 @@ mod test {
 
     #[test]
     fn test_recurrence_with_remove_currently_calculating() {
-        let sensors = &nodes(1);
-        let hiddens = &nodes(1);
-        let outputs = &nodes(2);
-        let edges = &vec![
-            Edge::new(&sensors[0], &hiddens[0], 1.),
-            Edge::new(&hiddens[0], &hiddens[0], 1.),
-            Edge::new(&hiddens[0], &outputs[0], 1.),
-            Edge::new(&hiddens[0], &outputs[1], 1.),
+        let sensors = nodes(1);
+        let hiddens = nodes(1);
+        let outputs = nodes(2);
+        let edges = vec![
+            Edge::new(sensors[0], hiddens[0], 1.),
+            Edge::new(hiddens[0], hiddens[0], 1.),
+            Edge::new(hiddens[0], outputs[0], 1.),
+            Edge::new(hiddens[0], outputs[1], 1.),
         ];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = HashMap::new();
@@ -208,12 +204,12 @@ mod test {
 
     #[test]
     fn test_get_activations() {
-        let sensors = &nodes(1);
-        let hiddens = &nodes(1);
-        let outputs = &nodes(1);
-        let edges = &vec![
-            Edge::new(&sensors[0], &hiddens[0], 1.),
-            Edge::new(&hiddens[0], &outputs[0], 1.),
+        let sensors = nodes(1);
+        let hiddens = nodes(1);
+        let outputs = nodes(1);
+        let edges = vec![
+            Edge::new(sensors[0], hiddens[0], 1.),
+            Edge::new(hiddens[0], outputs[0], 1.),
         ];
         let network = Network::new(sensors, outputs, edges);
         let previous_activations = &HashMap::new();
