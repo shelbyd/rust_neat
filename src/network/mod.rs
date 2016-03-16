@@ -1,3 +1,5 @@
+pub mod genome;
+
 extern crate rand;
 
 use std::f64::consts::E;
@@ -93,11 +95,16 @@ impl Network {
 pub struct Node(usize);
 
 impl Node {
-    fn new() -> Node {
+    fn random() -> Node {
         Node(rand::random::<usize>())
+    }
+
+    fn new(value: usize) -> Node {
+        Node(value)
     }
 }
 
+#[derive(PartialEq, Debug)]
 pub struct Edge {
     source: Node,
     destination: Node,
@@ -114,8 +121,8 @@ impl Edge {
     }
 }
 
-pub fn nodes(count: usize) -> Vec<Node> {
-    (0..).take(count).map(|_| Node::new()).collect()
+fn nodes(count: usize) -> Vec<Node> {
+    (0..).take(count).map(|_| Node::random()).collect()
 }
 
 fn sigmoid(value: f64) -> f64 {

@@ -1,8 +1,10 @@
 mod network;
 
-use network::Edge;
 use network::Network;
-use network::nodes;
+
+use network::genome::Genome;
+use network::genome::Gene;
+
 use std::collections::HashMap;
 
 fn main() {
@@ -27,38 +29,24 @@ fn evaluate_network(network: &Network) {
 }
 
 fn designed_network() -> Network {
-    let sensor_nodes = nodes(3);
-    let hidden_nodes = nodes(3);
-    let output_nodes = nodes(1);
+    let many_ones = 4;
+    let any_ones = 5;
+    let softmax = 6;
 
-    let edges = {
-        let sensor1 = sensor_nodes[0];
-        let sensor2 = sensor_nodes[1];
-        let bias = sensor_nodes[2];
+    let genes = vec![
+        Gene::new(0, many_ones, 6., 0),
+        Gene::new(1, many_ones, 6., 1),
+        Gene::new(2, many_ones, -8., 2),
 
-        let many_ones = hidden_nodes[0];
-        let any_ones = hidden_nodes[1];
+        Gene::new(0, any_ones, 10., 3),
+        Gene::new(1, any_ones, 10., 4),
+        Gene::new(2, any_ones, -5., 5),
 
-        let soft_max = hidden_nodes[2];
+        Gene::new(many_ones, softmax, -15., 6),
+        Gene::new(any_ones, softmax, 10., 7),
+        Gene::new(2, softmax, -5., 8),
 
-        let output = output_nodes[0];
-
-        vec![
-            Edge::new(sensor1, many_ones, 6.),
-            Edge::new(sensor2, many_ones, 6.),
-            Edge::new(bias, many_ones, -8.),
-
-            Edge::new(sensor2, any_ones, 10.),
-            Edge::new(sensor1, any_ones, 10.),
-            Edge::new(bias, any_ones, -5.),
-
-            Edge::new(many_ones, soft_max, -15.),
-            Edge::new(any_ones, soft_max, 10.),
-            Edge::new(bias, soft_max, -5.),
-
-            Edge::new(soft_max, output, 1.),
-        ]
-    };
-
-    Network::new(sensor_nodes, output_nodes, edges)
+        Gene::new(softmax, 3, 1., 9),
+    ];
+    Genome::new(2, 1, genes).to_network()
 }
