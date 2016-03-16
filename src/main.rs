@@ -21,9 +21,7 @@ fn evaluate_network(network: &Network) {
         println!("Input  {:?}", input);
         println!("Target {:?}", target);
 
-        let mut actual_input = input.clone();
-        actual_input.push(1.);
-        let (evaled, _) = network.eval(&actual_input, &HashMap::new());
+        let (evaled, _) = network.eval_with_bias(&input, &HashMap::new());
         println!("Result {:?}", evaled);
     }
 }

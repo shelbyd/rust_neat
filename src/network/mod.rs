@@ -38,6 +38,15 @@ impl Network {
         (outputs, these_activations)
     }
 
+    pub fn eval_with_bias(&self,
+                          inputs: &Vec<f64>,
+                          previous_activations: &HashMap<Node, f64>)
+                          -> (Vec<f64>, HashMap<Node, f64>) {
+        let mut with_bias = inputs.to_vec();
+        with_bias.push(1.);
+        self.eval(&with_bias, previous_activations)
+    }
+
     fn get_value(&self,
                  node: &Node,
                  inputs: &Vec<f64>,
