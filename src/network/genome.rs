@@ -20,10 +20,10 @@ impl Genome {
     pub fn to_network(&self) -> Network {
         let total_inputs = self.input_count + 1;
         Network {
-            sensors: (0..).take(total_inputs).map(|i| Node::new(i)).collect(),
+            sensors: (0..).take(total_inputs).map(Node::new).collect(),
             outputs: (total_inputs..)
                          .take(self.output_count)
-                         .map(|i| Node::new(i))
+                         .map(Node::new)
                          .collect(),
             edges: self.genes
                        .iter()

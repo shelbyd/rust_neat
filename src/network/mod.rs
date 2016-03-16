@@ -96,7 +96,7 @@ pub struct Node(usize);
 
 impl Node {
     fn random() -> Node {
-        Node(rand::random::<usize>())
+        Node::new(rand::random::<usize>())
     }
 
     fn new(value: usize) -> Node {
